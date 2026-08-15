@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { LogOut, UploadCloud, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import { LogOut, UploadCloud, CheckCircle2, Pencil, Trash2, Search } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -51,6 +51,30 @@ export default function Dashboard() {
 
   // Bulk Upload State
   const [isUploading, setIsUploading] = useState(false);
+
+  // Search and Filter State
+  const [topicSearchQuery, setTopicSearchQuery] = useState('');
+  const [questionSearchQuery, setQuestionSearchQuery] = useState('');
+  const [questionDifficultyFilter, setQuestionDifficultyFilter] = useState('all');
+
+  const filteredTopics = topics.filter(t => {
+    if (!topicSearchQuery) return true;
+    const name = t.name || t.title || t.id || '';
+    return name.toLowerCase().includes(topicSearchQuery.toLowerCase());
+  });
+
+  const filteredQuestions = questions.filter(q => {
+    let matchesSearch = true;
+    if (questionSearchQuery) {
+      const qText = q.text || q.question || '';
+      matchesSearch = qText.toLowerCase().includes(questionSearchQuery.toLowerCase());
+    }
+    let matchesDifficulty = true;
+    if (questionDifficultyFilter !== 'all') {
+      matchesDifficulty = q.difficulty === questionDifficultyFilter;
+    }
+    return matchesSearch && matchesDifficulty;
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -188,6 +212,8 @@ export default function Dashboard() {
       setQuestionText('');
       setOptions(['', '', '', '']);
       setCorrectIndex('0');
+      // Fix: instantly reload questions
+      loadQuestions(selectedTopic);
     } catch (error: any) {
       toast.error(error.message || 'Error adding question');
     } finally {
@@ -245,6 +271,7 @@ export default function Dashboard() {
     try {
       const count = await processBulkUpload(file, selectedTopic);
       toast.success(`Successfully uploaded ${count} questions!`);
+      loadQuestions(selectedTopic);
     } catch (error: any) {
       toast.error(error.message || 'Error uploading file');
     } finally {
@@ -303,18 +330,29 @@ export default function Dashboard() {
                   </div>
                 )}
               </CardHeader>
-              <CardContent>
-                <Select key={selectedTopic || 'empty'} value={selectedTopic} onValueChange={(val) => setSelectedTopic(val as string)}>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search topics..."
+                    value={topicSearchQuery}
+                    onChange={(e) => setTopicSearchQuery(e.target.value)}
+                    className="pl-9 bg-card"
+                  />
+                </div>
+                <Select value={selectedTopic} onValueChange={(val) => setSelectedTopic(val as string)}>
                   <SelectTrigger className="w-full border-border focus:ring-primary">
-                    <SelectValue placeholder="Select a topic" />
+                    <SelectValue placeholder="Select a topic">
+                      {topics.find(t => t.id === selectedTopic)?.name || topics.find(t => t.id === selectedTopic)?.title || "Select a topic"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {topics.map(topic => (
+                    {filteredTopics.map(topic => (
                       <SelectItem key={topic.id} value={topic.id}>
                         {topic.name || topic.title || topic.id}
                       </SelectItem>
                     ))}
-                    {topics.length === 0 && <SelectItem value="none" disabled>No topics found</SelectItem>}
+                    {filteredTopics.length === 0 && <SelectItem value="none" disabled>No topics found</SelectItem>}
                   </SelectContent>
                 </Select>
               </CardContent>
@@ -381,11 +419,36 @@ export default function Dashboard() {
                     <CardTitle>Questions</CardTitle>
                     <CardDescription>Manage questions for the selected topic.</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
+                      <div className="relative w-full">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search questions..."
+                          value={questionSearchQuery}
+                          onChange={(e) => setQuestionSearchQuery(e.target.value)}
+                          className="pl-9 w-full bg-card"
+                        />
+                      </div>
+                      <Select value={questionDifficultyFilter} onValueChange={(val) => setQuestionDifficultyFilter(val as string)}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                          <SelectValue placeholder="Difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Difficulties</SelectItem>
+                          <SelectItem value="easy">Easy</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="hard">Hard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {isLoadingQuestions ? (
                       <p>Loading questions...</p>
                     ) : questions.length === 0 ? (
                       <p className="text-muted-foreground">No questions found for this topic.</p>
+                    ) : filteredQuestions.length === 0 ? (
+                      <p className="text-muted-foreground">No questions match your filters.</p>
                     ) : (
                       <div className="rounded-md border">
                         <Table>
@@ -397,7 +460,7 @@ export default function Dashboard() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {questions.map((q) => (
+                            {filteredQuestions.map((q) => (
                               <TableRow key={q.id}>
                                 <TableCell className="font-medium max-w-xs truncate">{q.text || q.question || 'No Text'}</TableCell>
                                 <TableCell>{q.difficulty}</TableCell>
