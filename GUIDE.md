@@ -44,7 +44,20 @@ export const db = getFirestore(app);
 *(Make sure to add these variables to your `.env.local` file).*
 
 ## 4. Database Schema Mapping
-Based on your Flutter app, a question document in `/topics/{topicId}/questions/{questionId}` looks like this:
+Based on your Flutter app, a topic document in `/topics/{topicId}` looks like this:
+
+```json
+{
+  "id": "topic_abc",
+  "name": "General Knowledge",
+  "description": "Basic GK questions",
+  "iconName": "globe_icon",
+  "isActive": true,
+  "questionCount": 0
+}
+```
+
+And a question document in `/topics/{topicId}/questions/{questionId}` looks like this:
 
 ```json
 {
@@ -58,9 +71,34 @@ Based on your Flutter app, a question document in `/topics/{topicId}/questions/{
 }
 ```
 
-Since the backend and app have been updated to use a single field for questions, the dashboard will simply take a single `text` and `options` array from the user.
+Since the frontend app has been updated to use a single field for both topics and questions without separate localization (English/Bangla), the dashboard will simply take single fields for `name`, `description`, `text`, and `options` from the user.
 
 ## 5. Core Application Logic
+
+### Adding a New Topic
+To add a new topic, you can write directly to the `topics` collection:
+
+```javascript
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+export async function createTopic(topicData) {
+  const topicId = `topic_${Date.now()}`;
+  const newTopicRef = doc(db, "topics", topicId);
+  
+  const payload = {
+    id: topicId,
+    name: topicData.name,
+    description: topicData.description || "",
+    iconName: topicData.iconName || "default_icon",
+    isActive: true,
+    questionCount: 0
+  };
+
+  await setDoc(newTopicRef, payload);
+  return payload;
+}
+```
 
 ### Fetching Topics
 To add a question, you first need to select a topic. Create a hook or service to fetch active topics.
@@ -75,6 +113,37 @@ export async function fetchTopics() {
     id: doc.id,
     ...doc.data()
   }));
+}
+```
+
+### Editing a Topic
+```javascript
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+export async function editTopic(topicId, updatedData) {
+  const topicRef = doc(db, "topics", topicId);
+  
+  await updateDoc(topicRef, {
+    name: updatedData.name,
+    description: updatedData.description,
+    iconName: updatedData.iconName,
+    isActive: updatedData.isActive
+  });
+}
+```
+
+### Deleting a Topic
+> [!WARNING]
+> Deleting a topic document in Firestore does **not** automatically delete the questions inside its subcollection. It is highly recommended to "Soft Delete" by using `editTopic` to set `isActive: false`. If you truly want to hard delete:
+
+```javascript
+import { doc, deleteDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+export async function deleteTopic(topicId) {
+  const topicRef = doc(db, "topics", topicId);
+  await deleteDoc(topicRef);
 }
 ```
 
@@ -105,6 +174,60 @@ export async function addQuestion(topicId, questionData) {
   const topicRef = doc(db, "topics", topicId);
   await updateDoc(topicRef, {
     questionCount: increment(1)
+  });
+}
+```
+
+### Fetching Questions for a Topic
+To list all questions under a specific topic so you can view, edit, or delete them:
+
+```javascript
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+export async function fetchQuestions(topicId) {
+  const querySnapshot = await getDocs(collection(db, `topics/${topicId}/questions`));
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+```
+
+### Editing a Question
+```javascript
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+export async function editQuestion(topicId, questionId, updatedData) {
+  const questionRef = doc(db, `topics/${topicId}/questions/${questionId}`);
+  
+  await updateDoc(questionRef, {
+    text: updatedData.text,
+    options: updatedData.options,
+    correctIndex: parseInt(updatedData.correctIndex),
+    difficulty: updatedData.difficulty,
+    isActive: updatedData.isActive
+  });
+}
+```
+
+### Deleting a Question
+When you delete a question, don't forget to decrement the `questionCount` on the topic!
+
+```javascript
+import { doc, deleteDoc, updateDoc, increment } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+export async function deleteQuestion(topicId, questionId) {
+  // 1. Delete the question document
+  const questionRef = doc(db, `topics/${topicId}/questions/${questionId}`);
+  await deleteDoc(questionRef);
+
+  // 2. Decrement the questionCount on the Topic document
+  const topicRef = doc(db, "topics", topicId);
+  await updateDoc(topicRef, {
+    questionCount: increment(-1)
   });
 }
 ```
@@ -159,10 +282,12 @@ export async function processBulkUpload(file, topicId) {
 
 ## 6. UI Structure (`src/app/page.js`)
 Your main page should consist of:
-1. **Topic Selector**: A dropdown populated by `fetchTopics()`.
-2. **Tabs**: Two tabs to switch between "Single Add" and "Bulk Upload".
-3. **Single Form**: Fields for Question Text, 4 Option inputs, a Correct Answer radio group, and a Submit button.
-4. **Bulk Dropzone**: A drag-and-drop area for CSV files utilizing `react-dropzone`.
+1. **Topic Form**: A simple form calling `createTopic()` (fields: Name, Description, Icon).
+2. **Topic Selector**: A dropdown populated by `fetchTopics()`.
+3. **Tabs**: Three tabs to switch between "Question List", "Single Add", and "Bulk Upload".
+4. **Question List**: A table or list calling `fetchQuestions(selectedTopicId)`. Each row should have an Edit button (opens a modal with `editQuestion`) and a Delete button (calls `deleteQuestion`).
+5. **Single Form**: Fields for Question Text, 4 Option inputs, a Correct Answer radio group, and a Submit button.
+6. **Bulk Dropzone**: A drag-and-drop area for CSV files utilizing `react-dropzone`.
 
 > [!TIP]
 > Use `shadcn/ui` Toast component to show a green success message whenever a question or batch is successfully uploaded.

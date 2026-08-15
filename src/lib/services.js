@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, setDoc, updateDoc, increment, writeBatch } from "firebase/firestore";
+import { collection, doc, getDocs, setDoc, updateDoc, increment, writeBatch, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Papa from 'papaparse';
 
@@ -8,6 +8,23 @@ export async function fetchTopics() {
     id: doc.id,
     ...doc.data()
   }));
+}
+
+export async function createTopic(topicData) {
+  const topicId = `topic_${Date.now()}`;
+  const newTopicRef = doc(db, "topics", topicId);
+  
+  const payload = {
+    id: topicId,
+    name: topicData.name,
+    description: topicData.description || "",
+    iconName: topicData.iconName || "default_icon",
+    isActive: true,
+    questionCount: 0
+  };
+
+  await setDoc(newTopicRef, payload);
+  return payload;
 }
 
 export async function addQuestion(topicId, questionData) {
@@ -72,5 +89,53 @@ export async function processBulkUpload(file, topicId) {
         }
       }
     });
+  });
+}
+
+export async function editTopic(topicId, updatedData) {
+  const topicRef = doc(db, "topics", topicId);
+  
+  await updateDoc(topicRef, {
+    name: updatedData.name,
+    description: updatedData.description,
+    iconName: updatedData.iconName,
+    isActive: updatedData.isActive
+  });
+}
+
+export async function deleteTopic(topicId) {
+  const topicRef = doc(db, "topics", topicId);
+  await deleteDoc(topicRef);
+}
+
+export async function fetchQuestions(topicId) {
+  const querySnapshot = await getDocs(collection(db, `topics/${topicId}/questions`));
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+}
+
+export async function editQuestion(topicId, questionId, updatedData) {
+  const questionRef = doc(db, `topics/${topicId}/questions/${questionId}`);
+  
+  await updateDoc(questionRef, {
+    text: updatedData.text,
+    options: updatedData.options,
+    correctIndex: parseInt(updatedData.correctIndex),
+    difficulty: updatedData.difficulty,
+    isActive: updatedData.isActive
+  });
+}
+
+export async function deleteQuestion(topicId, questionId) {
+  // 1. Delete the question document
+  const questionRef = doc(db, `topics/${topicId}/questions/${questionId}`);
+  await deleteDoc(questionRef);
+
+  // 2. Decrement the questionCount on the Topic document
+  const topicRef = doc(db, "topics", topicId);
+  await updateDoc(topicRef, {
+    questionCount: increment(-1)
   });
 }

@@ -8,21 +8,33 @@ This guide defines the visual language for the admin dashboard so it feels like 
 
 - **Consistent with the app, not identical to it.** Reuse the emerald/gold identity, but let the dashboard feel like a "control room" — more neutral surface area, brand color used for emphasis rather than everywhere.
 - **Data-first.** This is a content management tool. Tables, forms, and status states should be scannable at a glance — no decorative clutter competing with the data.
-- **Calm dark mode as default.** Admin tools are used in short, frequent bursts (often at night after work). Default to dark theme; make light mode a toggle, not the primary experience.
+- **Soothing light mode as default.** Since this is a content-review tool used to read a lot of question text, default to a soft, low-glare white palette that's easy on the eyes for long sessions. Offer the dark emerald/gold theme as a toggle for night use, not the other way around.
 
 ---
 
 ## 2. Color Palette
 
-### Brand core (carried over from Amol Tracker)
+### Brand core (carried over from Amol Tracker — used as accent in both themes)
 | Token | Hex | Usage |
 |---|---|---|
 | `--brand-emerald` | `#0F5132` | Primary actions, active nav, focus rings |
 | `--brand-emerald-light` | `#1B7A4D` | Hover states, secondary emphasis |
-| `--brand-gold` | `#D4AF37` | Accents, badges, highlights, success emphasis on dark bg |
-| `--brand-gold-soft` | `#E8C766` | Hover on gold elements |
+| `--brand-gold` | `#B8923F` | Accents, badges, highlights (deepened slightly for legibility on white) |
+| `--brand-gold-soft` | `#D4AF37` | Hover on gold elements, dark-theme accent |
 
-### Dark theme (default)
+### Light theme (default) — soft, soothing, low-glare
+| Token | Hex | Usage |
+|---|---|---|
+| `--bg-base` | `#FAFAF7` | App background — warm off-white, not stark `#FFFFFF`, easier on the eyes |
+| `--bg-surface` | `#FFFFFF` | Cards, panels, table containers |
+| `--bg-surface-raised` | `#FFFFFF` | Modals, dropdowns, popovers — paired with a soft shadow instead of a color shift |
+| `--border-subtle` | `#E6E8E3` | Card borders, dividers |
+| `--text-primary` | `#1E2621` | Headings, primary text — soft near-black, not pure `#000` |
+| `--text-secondary` | `#5C6960` | Labels, helper text |
+| `--text-muted` | `#8B958E` | Placeholders, disabled text |
+| `--accent-wash` | `#EAF3EC` | Very light emerald tint for hover rows, selected states, subtle section backgrounds |
+
+### Dark theme (toggle, for night use)
 | Token | Hex | Usage |
 |---|---|---|
 | `--bg-base` | `#0B0F0D` | App background |
@@ -33,15 +45,6 @@ This guide defines the visual language for the admin dashboard so it feels like 
 | `--text-secondary` | `#9CAAA2` | Labels, helper text |
 | `--text-muted` | `#6B7A70` | Placeholders, disabled text |
 
-### Light theme (optional toggle)
-| Token | Hex | Usage |
-|---|---|---|
-| `--bg-base` | `#F7F8F6` | App background |
-| `--bg-surface` | `#FFFFFF` | Cards, panels |
-| `--border-subtle` | `#E3E7E2` | Dividers |
-| `--text-primary` | `#111815` | Headings |
-| `--text-secondary` | `#5A6660` | Body/labels |
-
 ### Semantic / status colors (same in both themes)
 | Token | Hex | Usage |
 |---|---|---|
@@ -50,7 +53,7 @@ This guide defines the visual language for the admin dashboard so it feels like 
 | `--danger` | `#D9534F` | Delete actions, validation errors, "Inactive" |
 | `--info` | `#4A9CE0` | Neutral notices, bulk-upload progress |
 
-**Rule of thumb:** emerald = primary action, gold = highlight/success accent, never use both as background+text on the same element (contrast risk). Status colors are reserved strictly for badges, toasts, and inline validation — not decoration.
+**Rule of thumb:** emerald = primary action, gold = highlight/success accent, never use both as background+text on the same element (contrast risk). Status colors are reserved strictly for badges, toasts, and inline validation — not decoration. On the light theme, use `--brand-gold` (the deepened `#B8923F`) for any gold *text*, and reserve the brighter `--brand-gold-soft` for backgrounds/borders only — bright gold text on white fails contrast.
 
 ---
 
@@ -71,7 +74,7 @@ This guide defines the visual language for the admin dashboard so it feels like 
 
 - **Spacing scale (4px base):** 4 / 8 / 12 / 16 / 24 / 32 / 48px. Use 16px as the default gap between form fields, 24px between major sections, 32–48px for page-level padding on desktop.
 - **Radius:** 8px on inputs/buttons, 12px on cards/modals, 999px (pill) on badges and status chips — matches Amol Tracker's rounded, friendly feel.
-- **Elevation:** Avoid heavy shadows on dark theme (they don't read well). Use a 1px `--border-subtle` outline plus a very faint inner glow instead of drop shadows for cards.
+- **Elevation:** On the light theme, use soft, diffuse shadows (e.g. `0 2px 8px rgba(30,38,33,0.06)`) for cards and modals — keep them subtle, not sharp/dark, to preserve the soothing feel. On the dark theme, avoid heavy shadows (they don't read well); use a 1px `--border-subtle` outline plus a very faint inner glow instead.
 - **Grid:** 12-column layout on desktop, single column stacked on mobile. Max content width ~1200px, centered, with generous side padding on ultra-wide screens.
 
 ---
@@ -104,8 +107,16 @@ This guide defines the visual language for the admin dashboard so it feels like 
 
 ---
 
-## 7. Accessibility
+## 7. Theme Toggle
 
-- Maintain minimum 4.5:1 contrast for body text against backgrounds (verify gold-on-dark and emerald-on-dark combos specifically — gold on light backgrounds can fail contrast, use `--brand-emerald` for text-on-light instead).
-- Every interactive element needs a visible focus ring (emerald, 2px, offset).
+- Add a simple sun/moon icon toggle in the top nav (top-right, next to the logout button) that switches a `data-theme="light" | "dark"` attribute on `<html>` and swaps the CSS variable values above.
+- Persist the choice (e.g. `localStorage` in a real deploy) so it doesn't reset every visit, but **default new/first-time sessions to light** per the soothing-by-default preference.
+- Respecting `prefers-color-scheme` is optional here — since this default intentionally overrides "match system" in favor of light-first.
+
+---
+
+## 8. Accessibility
+
+- Maintain minimum 4.5:1 contrast for body text against backgrounds in both themes (verify `--brand-gold` variants specifically — the brighter gold fails contrast as text on white; use the deepened `#B8923F` or `--brand-emerald` for text-on-light instead).
+- Every interactive element needs a visible focus ring (emerald, 2px, offset) in both themes.
 - Don't rely on color alone for status — pair badges with a short label ("Active" / "Inactive"), not just a colored dot.
