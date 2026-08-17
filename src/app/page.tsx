@@ -561,7 +561,7 @@ export default function Dashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label>Source Type</Label>
-                          <Select value={sourceType} onValueChange={setSourceType}>
+                          <Select value={sourceType} onValueChange={(val) => setSourceType(val as string)}>
                             <SelectTrigger className="border-border">
                               <SelectValue />
                             </SelectTrigger>
