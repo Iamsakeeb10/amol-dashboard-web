@@ -31,6 +31,8 @@ export default function Dashboard() {
   const [options, setOptions] = useState(['', '', '', '']);
   const [correctIndex, setCorrectIndex] = useState('0');
   const [difficulty, setDifficulty] = useState('easy');
+  const [sourceType, setSourceType] = useState('other');
+  const [sourceReference, setSourceReference] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // New Topic State
@@ -205,13 +207,17 @@ export default function Dashboard() {
         text: questionText,
         options,
         correctIndex,
-        difficulty
+        difficulty,
+        sourceType,
+        sourceReference
       });
       toast.success('Question added successfully!');
       // Reset form
       setQuestionText('');
       setOptions(['', '', '', '']);
       setCorrectIndex('0');
+      setSourceType('other');
+      setSourceReference('');
       // Fix: instantly reload questions
       loadQuestions(selectedTopic);
     } catch (error: any) {
@@ -245,7 +251,9 @@ export default function Dashboard() {
         options: editingQuestion.options,
         correctIndex: editingQuestion.correctIndex.toString(),
         difficulty: editingQuestion.difficulty,
-        isActive: true
+        isActive: true,
+        sourceType: editingQuestion.sourceType,
+        sourceReference: editingQuestion.sourceReference
       });
       toast.success('Question updated successfully!');
       setIsEditDialogOpen(false);
@@ -471,7 +479,9 @@ export default function Dashboard() {
                                       text: q.text || q.question || '',
                                       options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ['', '', '', ''],
                                       correctIndex: q.correctIndex ?? 0,
-                                      difficulty: q.difficulty || 'easy'
+                                      difficulty: q.difficulty || 'easy',
+                                      sourceType: q.sourceType || 'other',
+                                      sourceReference: q.sourceReference || ''
                                     }); 
                                     setIsEditDialogOpen(true); 
                                   }}>
@@ -548,6 +558,27 @@ export default function Dashboard() {
                         </Select>
                       </div>
 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Source Type</Label>
+                          <Select value={sourceType} onValueChange={setSourceType}>
+                            <SelectTrigger className="border-border">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="quran">Quran</SelectItem>
+                              <SelectItem value="hadith">Hadith</SelectItem>
+                              <SelectItem value="book">Book</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="sourceReference" className="text-base font-semibold">Source Reference</Label>
+                          <Input id="sourceReference" placeholder="e.g. Sahih al-Bukhari, Hadith 1" value={sourceReference} onChange={e => setSourceReference(e.target.value)} className="border-border" />
+                        </div>
+                      </div>
+
                       <div className="pt-4 sm:sticky sm:bottom-4 z-10 bg-background/80 backdrop-blur-sm sm:bg-transparent p-4 -mx-4 sm:p-0 sm:mx-0 border-t sm:border-0 border-border mt-8">
                         <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-8 py-6 rounded-xl shadow-soft">
                           {isSubmitting ? "Adding..." : "Add Question"}
@@ -564,7 +595,7 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle>Bulk Upload Questions</CardTitle>
                     <CardDescription>
-                      Upload a CSV file. Required columns: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs break-all">Question, Option1, Option2, Option3, Option4, CorrectIndex, Difficulty</span>
+                      Upload a CSV file. Required columns: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs break-all">Question, Option1, Option2, Option3, Option4, CorrectIndex, Difficulty, SourceType, SourceReference</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -659,6 +690,24 @@ export default function Dashboard() {
                     <SelectItem value="hard">Hard</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Source Type</Label>
+                  <Select value={editingQuestion.sourceType} onValueChange={val => setEditingQuestion({...editingQuestion, sourceType: val})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="quran">Quran</SelectItem>
+                      <SelectItem value="hadith">Hadith</SelectItem>
+                      <SelectItem value="book">Book</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Source Reference</Label>
+                  <Input value={editingQuestion.sourceReference} onChange={e => setEditingQuestion({...editingQuestion, sourceReference: e.target.value})} placeholder="e.g. Sahih al-Bukhari, Hadith 1" />
+                </div>
               </div>
               <Button type="submit" className="w-full">Save Changes</Button>
             </form>

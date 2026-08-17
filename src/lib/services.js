@@ -39,7 +39,9 @@ export async function addQuestion(topicId, questionData) {
     options: questionData.options,
     correctIndex: parseInt(questionData.correctIndex),
     difficulty: questionData.difficulty || 'easy',
-    isActive: true
+    isActive: true,
+    sourceType: questionData.sourceType || 'other',
+    sourceReference: questionData.sourceReference || ''
   };
 
   // 3. Write to DB
@@ -71,7 +73,9 @@ export async function processBulkUpload(file, topicId) {
               options: [row.Option1, row.Option2, row.Option3, row.Option4],
               correctIndex: parseInt(row.CorrectIndex),
               difficulty: row.Difficulty || 'easy',
-              isActive: true
+              isActive: true,
+              sourceType: row.SourceType || 'other',
+              sourceReference: row.SourceReference || ''
             });
             count++;
           });
@@ -124,7 +128,9 @@ export async function editQuestion(topicId, questionId, updatedData) {
     options: updatedData.options,
     correctIndex: parseInt(updatedData.correctIndex),
     difficulty: updatedData.difficulty,
-    isActive: updatedData.isActive
+    isActive: updatedData.isActive,
+    sourceType: updatedData.sourceType || 'other',
+    sourceReference: updatedData.sourceReference || ''
   });
 }
 
