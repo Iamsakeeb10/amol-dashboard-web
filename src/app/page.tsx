@@ -29,7 +29,7 @@ export default function Dashboard() {
   // Single Question State
   const [questionText, setQuestionText] = useState('');
   const [options, setOptions] = useState(['', '', '', '']);
-  const [correctIndex, setCorrectIndex] = useState('0');
+  const [correctIndex, setCorrectIndex] = useState('');
   const [difficulty, setDifficulty] = useState('easy');
   const [sourceType, setSourceType] = useState('other');
   const [sourceReference, setSourceReference] = useState('');
@@ -200,6 +200,7 @@ export default function Dashboard() {
     if (!selectedTopic) return toast.error('Please select a topic first');
     if (!questionText) return toast.error('Question text is required');
     if (options.some(opt => !opt.trim())) return toast.error('All 4 options are required');
+    if (correctIndex === '') return toast.error('Please select the correct answer');
 
     setIsSubmitting(true);
     try {
@@ -215,7 +216,7 @@ export default function Dashboard() {
       // Reset form
       setQuestionText('');
       setOptions(['', '', '', '']);
-      setCorrectIndex('0');
+      setCorrectIndex('');
       setSourceType('other');
       setSourceReference('');
       // Fix: instantly reload questions
